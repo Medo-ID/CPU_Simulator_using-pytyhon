@@ -84,7 +84,5 @@ def main():
     print("Registers: ", cpu.registers)
     print("Memory: ", memory_bus.memory[:16])
 
-# if __name__ == "__main__":
-#     main()
-
-main()
+if __name__ == "__main__":
+    main()
