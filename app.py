@@ -57,23 +57,29 @@ def main():
     """Initializes the CPU, cache, and memory bus. 
     Loads initial memory values and program instructions from specified files, loads them into memory, and runs the CPU.
     Finally, prints the state of registers and a portion of memory after execution."""
+    
     print("Phase 1")
+    
     # Initialize components
     memory_bus = MemoryBus()
     cache = Cache()
     cpu = CPU(memory_bus, cache)
     print("Phase 2")
+    
     # Load initial memory and program
     initial_memory = load_memory_from_file('data_input.txt')
     program = load_instructions_from_file('instruction_input.txt')
     print("Phase 3")
     memory_bus.load_memory(initial_memory)
+    
     # Uses dictionary comprehension to create a dictionary of memory addresses and program instructions.
     memory_bus.load_memory({i + len(initial_memory): program[i] for i in range(len(program))})
     print("Phase 4")
+    
     # Run the cpu
     cpu.run()
     print("Phase 5")
+    
     # Output the final state
     print("Registers: ", cpu.registers)
     print("Memory: ", memory_bus.memory[:16])

@@ -24,68 +24,41 @@ class CPU:
     def fetch(self):
         """Fetches the next instruction from memory using the program counter and increments the program counter."""
         instruction = self.memory_bus.read(self.pc)
+        print(f"Fetched instruction: {instruction:032b} from address {self.pc}")
         self.pc += 4
-        print(f"Fetched instruction: {instruction:032b} from address {self.pc - 4}")
         return instruction
     
     def decode_execute(self, instruction):
         """Decodes and executes the fetched instruction by identifying its opcode and performing the corresponding operation."""
-        opcode = (instruction >> 26) & 0x3F
-        print(f"Decoding instruction with opcode: {opcode:06b}")
-        if opcode == 0:  # R-type instructions
-            funct = instruction & 0x3F
-            rs = (instruction >> 21) & 0x1F
-            rt = (instruction >> 16) & 0x1F
-            rd = (instruction >> 11) & 0x1F
-            print(f"R-type instruction with funct: {funct:06b}, rs: {rs}, rt: {rt}, rd: {rd}")
-            if funct == 0x20:  # ADD
-                self.registers[rd] = self.registers[rs] + self.registers[rt]
-            elif funct == 0x22:  # SUB
-                self.registers[rd] = self.registers[rs] - self.registers[rt]
-            elif funct == 0x2A:  # SLT
-                self.registers[rd] = 1 if self.registers[rs] < self.registers[rt] else 0
-        elif opcode == 0x08:  # ADDI
-            rs = (instruction >> 21) & 0x1F
-            rt = (instruction >> 16) & 0x1F
-            immediate = instruction & 0xFFFF
-            print(f"ADDI instruction with rs: {rs}, rt: {rt}, immediate: {immediate}")
-            self.registers[rt] = self.registers[rs] + immediate
-        elif opcode == 0x04:  # BNE
-            rs = (instruction >> 21) & 0x1F
-            rt = (instruction >> 16) & 0x1F
-            offset = instruction & 0xFFFF
-            print(f"BNE instruction with rs: {rs}, rt: {rt}, offset: {offset}")
-            if self.registers[rs] != self.registers[rt]:
-                self.pc += offset * 4
-        elif opcode == 0x02:  # J
-            target = instruction & 0x3FFFFFF
-            print(f"J instruction with target: {target}")
-            self.pc = (target << 2) & 0xFFFFFFFF
-        elif opcode == 0x03:  # JAL
-            target = instruction & 0x3FFFFFF
-            print(f"JAL instruction with target: {target}")
-            self.registers[31] = self.pc
-            self.pc = (target << 2) & 0xFFFFFFFF
-        elif opcode == 0x23:  # LW
-            rs = (instruction >> 21) & 0x1F
-            rt = (instruction >> 16) & 0x1F
-            offset = instruction & 0xFFFF
-            address = self.registers[rs] + offset
-            print(f"LW instruction with rs: {rs}, rt: {rt}, address: {address}")
-            self.registers[rt] = self.memory_bus.read(address)
-        elif opcode == 0x2B:  # SW
-            rs = (instruction >> 21) & 0x1F
-            rt = (instruction >> 16) & 0x1F
-            offset = instruction & 0xFFFF
-            address = self.registers[rs] + offset
-            print(f"SW instruction with rs: {rs}, rt: {rt}, address: {address}")
-            self.memory_bus.write(address, self.registers[rt])
-        elif opcode == 0x3F:  # HALT
-            print("HALT instruction encountered. Stopping execution.")
+        opcode = instruction >> 4  # First 4 bits
+        operand = instruction & 0x0F  # Last 4 bits
+
+        if opcode == 0x1:  # LOAD
+            self.registers[0] = self.memory[operand]
+        elif opcode == 0x2:  # STORE
+            self.memory[operand] = self.registers[0]
+        elif opcode == 0x3:  # ADD
+            self.registers[0] += self.memory[operand]
+        elif opcode == 0x4:  # SUB
+            self.registers[0] -= self.memory[operand]
+        elif opcode == 0x5:  # JMP
+            self.pc = operand
+        elif opcode == 0x6:  # JZ (Jump if zero)
+            if self.registers[0] == 0:
+                self.pc = operand
+        elif opcode == 0xF:  # HALT
+            self.running = False
+        
+        # Debug the program counter after instruction execution
+        print(f"Program counter after execution: {self.pc}")
+        
+        # Ensure program counter is within valid memory range
+        if not (0 <= self.pc < len(self.memory_bus.memory) * 4):
+            print(f"Error: Program counter out of valid memory range: {self.pc}")
             self.running = False
 
     def run(self):
-        """Runs the fetch-decode-execute cycle in a loop until a HALT instruction is encountered."""
+        """Runs the fetch-decode-execute cycle in a loop until a HALT instruction is encountered or an invalid state is reached."""
         while self.running:
             instruction = self.fetch()
             self.decode_execute(instruction)
